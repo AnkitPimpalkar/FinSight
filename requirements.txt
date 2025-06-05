@@ -13,3 +13,10 @@ types-PyYAML
 Flask
 Flask-Cors
 -e .
+#LLM requirements
+yfinance
+phidata
+python-dotenv
+duckduckgo-search
+groq
+openai

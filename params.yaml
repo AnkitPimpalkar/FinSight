@@ -1,0 +1,4 @@
+data_ingestion:
+  period: "7d"       # last 7 days
+  interval: "1h"     # hourly data
+
