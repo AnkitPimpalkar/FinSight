@@ -6,5 +6,9 @@ class TickerFinderPipeline:
         logger.info("Running TickerFinderPipeline")
         ticker = get_bullish_ticker()
         logger.info(f"TickerFinderPipeline finished with ticker: {ticker}")
+        print("Final Ticker selected:", ticker)
+        print("Ticker Type:", type(ticker))
+
         return ticker
+
 

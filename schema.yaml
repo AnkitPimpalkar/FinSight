@@ -1,1 +1,11 @@
-key: val
+COLUMNS:
+  Ticker: object
+  Open: float64
+  High: float64
+  Low: float64
+  Close: float64
+  Volume: int64
+  Datetime: object
+
+TARGET_COLUMN: Close
+TARGET_TYPE: float64
