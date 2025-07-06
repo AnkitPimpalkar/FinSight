@@ -10,3 +10,14 @@ data_validation:
   data: artifacts/data_ingestion/raw_data.csv
   STATUS_FILE: artifacts/data_validation/status.txt
 
+
+data_transformation:
+  root_dir: artifacts/data_transformation
+  raw_data_file: artifacts/data_ingestion/raw_data.csv
+
+
+model_training:
+  root_dir: artifacts/model_training
+  trained_model_name: lstm_model.keras
+
+  

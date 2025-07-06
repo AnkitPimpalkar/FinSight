@@ -3,7 +3,10 @@ import os
 from finance_ml.constants import *
 from finance_ml.utils.common import read_yaml, create_directories
 from finance_ml.entity.config_entity import (DataIngestionConfig,
-                                             DataValidationConfig)
+                                             DataValidationConfig,
+                                             DataTransformationConfig,
+                                             ModelTrainingConfig,
+                                             ModelTrainingParams)
 
 class ConfigurationManager:
     def __init__(
@@ -25,7 +28,7 @@ class ConfigurationManager:
         create_directories([config.root_dir])
 
         data_ingestion_config = DataIngestionConfig(
-            root_dir=config.root_dir,
+            root_dir= Path(config.root_dir),
             raw_data_file=os.path.join(config.root_dir, config.raw_data_file), 
             period=params.period,     
             interval=params.interval  
@@ -40,10 +43,44 @@ class ConfigurationManager:
         create_directories([config.root_dir])
 
         data_Validation_config = DataValidationConfig(
-            root_dir= config.root_dir,
+            root_dir= Path(config.root_dir),
             STATUS_FILE= config.STATUS_FILE,
-            data= config.data,
+            data= Path(config.data),
             all_schemas= schema  
         )
 
         return data_Validation_config
+    
+    def get_data_transformation_config(self) -> DataTransformationConfig: # Add this method
+        config = self.config.data_transformation
+
+        create_directories([config.root_dir])
+
+        data_transformation_config = DataTransformationConfig(
+            root_dir=Path(config.root_dir),
+            raw_data_file=Path(config.raw_data_file) 
+        )
+
+        return data_transformation_config
+    
+    def get_model_training_config(self) -> tuple[ModelTrainingConfig, ModelTrainingParams]: # Modify return type
+        config = self.config.model_training
+        params = self.params.model_training # Access parameters from params.yaml
+
+        create_directories([config.root_dir])
+
+        model_training_config = ModelTrainingConfig(
+            root_dir=config.root_dir,
+            trained_model_name=config.trained_model_name
+        )
+
+        model_training_params = ModelTrainingParams(
+            epochs=params.epochs,
+            batch_size=params.batch_size,
+            lstm_units_1=params.lstm_units_1,
+            lstm_units_2=params.lstm_units_2,
+            dense_units_1=params.dense_units_1,
+            dropout_rate=params.dropout_rate
+        )
+
+        return model_training_config, model_training_params # Return both 

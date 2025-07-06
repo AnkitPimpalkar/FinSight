@@ -9,7 +9,8 @@ class DataIngestion:
         df = yf.download(
             tickers=self.ticker,
             period=self.config.period,
-            interval=self.config.interval
+            interval=self.config.interval,
+            auto_adjust=True
         )
         if df.empty:
             print(f"No data for {self.ticker}")

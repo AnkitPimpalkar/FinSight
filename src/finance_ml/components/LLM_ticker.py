@@ -2,7 +2,7 @@ from phi.agent import Agent
 from phi.model.groq import Groq
 from phi.model.openai import OpenAIChat
 from phi.tools.yfinance import YFinanceTools
-from phi.tools.duckduckgo import DuckDuckGo
+from phi.tools.googlesearch import GoogleSearch
 import re
 import time
 import yfinance as yf
@@ -18,12 +18,12 @@ try:
         name="WebAgent",
         role="Market research expert",
         model=Groq(id="meta-llama/llama-4-scout-17b-16e-instruct"),
-        tools=[DuckDuckGo()],
+        tools=[GoogleSearch()],
         instructions=[
             f"You are a web analyst. Search current news (as of {today}) to identify Indian stocks showing bullish trends today. Focus on companies with positive momentum, news, or sentiment."
         ],
         show_tools_calls=True,
-        markdown=True,
+        markdown=False,
     )
 
     finance_agent = Agent(
@@ -46,7 +46,7 @@ try:
             f"You are a financial analyst. Study financial data for stocks considered bullish today ({today}) and select the single most promising Indian stock for intraday or short-term trading."
         ],
         show_tools_calls=True,
-        markdown=True,
+        markdown=False,
     )
 
     finsight_agent = Agent(
@@ -56,7 +56,7 @@ try:
             f"Based on the information and research done by your team as of {today}, return only NSE tickers that are available on Yahoo Finance (ending with .NS). Do not suggest BSE or delisted stocks. Do NOT include any other text, explanation, or formatting. Only output the ticker symbol, nothing else."
         ],
         show_tools_calls=True,
-        markdown=True,
+        markdown=False,
     )
 
 except Exception as e:
@@ -71,17 +71,32 @@ def is_valid_ticker(ticker):
     except Exception:
         return False
 
+def extract_ticker(text):
+    # Remove markdown/code block formatting
+    text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+    text = re.sub(r"\*\*.*?\*\*", "", text)
+    # Find all .NS tickers
+    matches = re.findall(r"\b[A-Z0-9]{2,8}\.NS\b", text.upper())
+    # Filter out known non-ticker words
+    blacklist = {"MARKDOWN.NS", "CANNOT.NS", "THE.NS"}
+    for ticker in matches:
+        if ticker not in blacklist:
+            return ticker
+    return None
+
 def get_bullish_ticker(max_retries=3, delay=5):
     for attempt in range(1, max_retries + 1):
         try:
             logger.info(f"Running Finsight Agent to get bullish ticker... (Attempt {attempt})")
+
             result = finsight_agent.run()
-            matches = re.findall(r'\b[A-Z]{2,8}(?:\.NS)?\b', result.content.upper())
-            if not matches:
+            logger.info(f"Raw LLM output: {result.content}")  # <--- Add this line
+
+            ticker = extract_ticker(result.content)
+            if not ticker:
                 raise ValueError("No valid ticker found in agent response.")
-            ticker = matches[0].replace("*", "").replace(" ", "")
-            if not ticker.endswith(".NS"):
-                ticker = ticker + ".NS"
+            
+
             # Validate ticker
             if is_valid_ticker(ticker):
                 logger.info(f"Top bullish stock ticker identified: {ticker}")
@@ -89,6 +104,7 @@ def get_bullish_ticker(max_retries=3, delay=5):
             else:
                 logger.warning(f"Ticker {ticker} is not valid on yfinance. Retrying...")
                 continue
+            
         except Exception as e:
             logger.error(f"Agent execution failed on attempt {attempt}: {e}", exc_info=True)
             if attempt < max_retries:
@@ -96,3 +112,5 @@ def get_bullish_ticker(max_retries=3, delay=5):
                 time.sleep(delay)
             else:
                 raise AgentExecutionError("Finsight agent failed to run after retries.") from e
+
+
