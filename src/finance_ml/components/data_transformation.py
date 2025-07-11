@@ -5,13 +5,13 @@ import pandas as pd
 import os
 import traceback
 from joblib import dump # Import dump to save the scaler
-from finance_ml import logger # Import logger for logging within the component
+from finance_ml import logger
 
 class DataTransformation:
     def __init__(self, config: DataTransformationConfig):
         self.config = config
 
-    def transform_and_save_data(self, feature="Close", lookback=60, split_ratio=0.95):
+    def transform_and_save_data(self, feature="Close", lookback=None, split_ratio=0.95):
         """
         Loads raw data, transforms it, and saves the transformed data and scaler.
 
@@ -20,6 +20,9 @@ class DataTransformation:
             lookback (int): Number of previous time steps to use for prediction (default 60).
             split_ratio (float): Ratio for splitting data into training and testing sets (default 0.95).
         """
+        if lookback is None:
+            lookback = self.config.lookback
+            
         raw_data_path = self.config.raw_data_file
 
         df = pd.read_csv(raw_data_path)
@@ -37,6 +40,14 @@ class DataTransformation:
         train_data = scaled_data[:training_data_len]
         test_data = scaled_data[training_data_len - lookback:]
 
+        logger.info(f"Scaled data shape: {scaled_data.shape}")
+        logger.info(f"Training data length: {len(train_data)} | Lookback: {lookback}")
+
+        if len(train_data) <= lookback:
+            logger.error("Training data is too short for sequence generation. Try using more historical data or reduce lookback.")
+            return
+
+
         def create_sequences(data):
             X, y = [], []
             for i in range(lookback, len(data)):
@@ -47,8 +58,19 @@ class DataTransformation:
         X_train, y_train = create_sequences(train_data)
         X_test, y_test = create_sequences(test_data)
 
-        X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
-        X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
+        # Print/debug before reshape
+        print("X_train shape before reshape:", X_train.shape)
+
+        if X_train.ndim == 2:
+            X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
+        else:
+            logger.warning("X_train already 3D or unexpected shape: skipping reshape or needs manual fix.")
+
+        if X_test.ndim == 2:
+            X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
+        else:
+            logger.warning("X_test already 3D or unexpected shape: skipping reshape or needs manual fix.")
+
 
         try:
         # Save transformed data and scaler

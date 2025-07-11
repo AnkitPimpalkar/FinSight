@@ -6,7 +6,9 @@ from finance_ml.entity.config_entity import (DataIngestionConfig,
                                              DataValidationConfig,
                                              DataTransformationConfig,
                                              ModelTrainingConfig,
-                                             ModelTrainingParams)
+                                             ModelTrainingParams,
+                                             ModelEvaluationConfig,
+                                             ModelPredictionConfig)
 
 class ConfigurationManager:
     def __init__(
@@ -53,12 +55,14 @@ class ConfigurationManager:
     
     def get_data_transformation_config(self) -> DataTransformationConfig: # Add this method
         config = self.config.data_transformation
+        params = self.params.data_transformation
 
         create_directories([config.root_dir])
 
         data_transformation_config = DataTransformationConfig(
             root_dir=Path(config.root_dir),
-            raw_data_file=Path(config.raw_data_file) 
+            raw_data_file=Path(config.raw_data_file),
+            lookback=params.lookback
         )
 
         return data_transformation_config
@@ -84,3 +88,34 @@ class ConfigurationManager:
         )
 
         return model_training_config, model_training_params # Return both 
+    
+    def get_model_evaluation_config(self) -> ModelEvaluationConfig:
+        config = self.config.model_evaluation
+
+        create_directories([config.root_dir])
+    
+        evaluation_config = ModelEvaluationConfig(
+            root_dir=config.root_dir,
+            metrics_file_name=config.metrics_file_name,
+            model_path=config.model_path,
+            X_test_path=config.X_test_path,
+            y_test_path=config.y_test_path
+            )
+
+        return evaluation_config
+    
+    def get_model_prediction_config(self) -> ModelPredictionConfig: # Add the new method
+        config = self.config.model_prediction
+        params = self.params.data_transformation
+
+        create_directories([config.root_dir])
+
+        model_prediction_config = ModelPredictionConfig(
+            root_dir=config.root_dir,
+            trained_model_path=Path(config.trained_model_path), # Ensure Path type
+            input_data_path=Path(config.input_data_path), # Ensure Path type
+            predictions_file_name=config.predictions_file_name,
+            lookback=params.lookback
+        )
+
+        return model_prediction_config

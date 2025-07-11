@@ -24,3 +24,5 @@ groq
 openai
 pydantic>=2.0,<3.0
 pydantic-core>=2.0,<3.0
+#Research
+seaborn

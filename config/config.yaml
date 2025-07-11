@@ -21,3 +21,16 @@ model_training:
   trained_model_name: lstm_model.keras
 
   
+model_evaluation:
+  root_dir: artifacts/model_evaluation
+  metrics_file_name: metrics.json
+  model_path: artifacts/model_training/lstm_model.keras
+  X_test_path: artifacts/data_transformation/X_test.npy
+  y_test_path: artifacts/data_transformation/y_test.npy
+
+
+model_prediction:
+  root_dir: artifacts/model_prediction
+  trained_model_path: artifacts/model_training/lstm_model.keras
+  input_data_path: artifacts/data_ingestion/raw_data.csv # Path to the input data for prediction
+  predictions_file_name: predictions.csv

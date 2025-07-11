@@ -3,6 +3,7 @@ from tensorflow import keras
 import numpy as np
 import os
 import tensorflow as tf
+import mlflow.keras  # Added for autologging
 
 class ModelTraining:
     def __init__(self, config: ModelTrainingConfig, params: ModelTrainingParams): 
@@ -10,6 +11,8 @@ class ModelTraining:
         self.params = params
 
     def train_model(self):
+        # Enable MLflow autologging
+        mlflow.keras.autolog()
         # Load the transformed data
         X_train = np.load(os.path.join("artifacts", "data_transformation", "X_train.npy"))
         y_train = np.load(os.path.join("artifacts", "data_transformation", "y_train.npy"))
