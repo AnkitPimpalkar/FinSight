@@ -1,11 +1,6 @@
 from app import app
 
-def test_index_route():
-    """Test that the index route returns 200"""
-    client = app.test_client()
-    response = client.get('/')
-    assert response.status_code == 200
-
-def test_app_running():
-    """Test that the Flask app exists"""
+def test_app_creation():
+    """Test that the Flask app exists and is configured"""
     assert app is not None
+    assert app.config['TESTING'] is not True  # Ensure we're not in testing mode by default

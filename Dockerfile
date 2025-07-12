@@ -2,12 +2,12 @@ FROM python:3.11.0-slim-buster
 
 WORKDIR /app
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy rest of the code
+# Copy all files first
 COPY . .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install .
 
 # Configure for Cloud Run
 ENV PORT=8080
