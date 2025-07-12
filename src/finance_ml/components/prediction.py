@@ -83,17 +83,7 @@ class ModelPrediction:
             updated_history = historical_record
         updated_history.to_csv(history_file_path, index=False)
         
-        print(f"Prediction history updated at: {history_file_path}")
-        print(f" <<<<<<<<<<<<<<<Predicted next closing price for {predicted_date.strftime('%Y-%m-%d')}: {predicted_price[0][0]}>>>>>>>>>>>>>>>>")
-        print(f"Predictions saved to: {predictions_file_path}")
-        print(f"Scaler path used: artifacts/data_transformation/scaler.joblib")
-        print(f"Data used for prediction (last 5):\n{stock_close.tail()}")
-        print(f"Model loaded from: {self.config.trained_model_path}")
-        model.summary()
-        print(f"Input data path used: {self.config.input_data_path}")
-        print("First 2 rows of input data:")
-        print(data.head(2))
-        print("Ticker column:", data['Ticker'].unique())
-        print(f"Final prediction file path: {predictions_file_path}")
-        print("Predicted date and price:\n", predictions_df)
+        # --- Clean, final output for parsing ---
+        # The web app will look for this exact line.
+        print(f"Predicted Close Price for {ticker}: {predicted_price[0][0]:.2f}")
 

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSight - Stock Price Predictor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2E4057;
+            --secondary: #048A81;
+            --accent: #37BD6B;
+            --background: #f8f9fc;
+            --text: #2C3E50;
+            --shadow: rgba(46, 64, 87, 0.1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px var(--shadow);
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+        .logo {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+            letter-spacing: -1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .logo::before {
+            content: '';
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--secondary), var(--accent));
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            transition: transform 0.3s ease;
+        }
+        .logo:hover::before {
+            transform: rotate(180deg);
+        }
+        .subtitle {
+            font-size: 1.1em;
+            color: var(--text);
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+        .options {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .option {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            width: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .option:hover, .option.active {
+            border-color: var(--secondary);
+            box-shadow: 0 4px 15px var(--shadow);
+            transform: translateY(-2px);
+        }
+        .option h2 {
+            margin-top: 0;
+            color: var(--primary);
+            font-size: 1.3em;
+        }
+        .option p {
+            color: var(--text);
+            opacity: 0.8;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        form {
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(4, 138, 129, 0.1);
+        }
+        button {
+            background-color: var(--secondary);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            transition: transform 0.2s, background-color 0.3s;
+        }
+        button:hover {
+            background-color: #037068;
+            transform: translateY(-1px);
+        }
+        #llm-form button {
+            background-color: var(--accent);
+        }
+        #llm-form button:hover {
+            background-color: #2fa85e;
+        }
+        .hidden {
+            display: none;
+        }
+        #results {
+            margin-top: 40px;
+            text-align: left;
+        }
+        #results h2 {
+            text-align: center;
+            color: #3c4043;
+        }
+        #prediction {
+            text-align: center;
+            font-size: 1.5em;
+            margin: 20px 0;
+        }
+        #prediction span {
+            font-weight: bold;
+            color: #1a73e8;
+        }
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            text-align: center;
+        }
+        .loading-content {
+            max-width: 600px;
+            padding: 20px;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1a73e8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-message {
+            font-size: 1.2em;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        .loading-fact {
+            font-style: italic;
+            margin: 10px 0;
+            color: #8ab4f8;
+        }
+        .creator-note {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">FinSight</div>
+    <div class="subtitle">Intelligent Stock Price Predictor</div>
+
+    <div class="options">
+        <div class="option" id="manual-option" onclick="selectOption('manual')">
+            <h2>Manual Prediction</h2>
+            <p>Enter a stock ticker to predict its next day closing price.</p>
+        </div>
+        <div class="option" id="llm-option" onclick="selectOption('llm')">
+            <h2>LLM-Powered Prediction</h2>
+            <p>Let our AI choose the most promising bullish stock for you.</p>
+        </div>
+    </div>
+
+    <form id="manual-form" class="hidden" action="/predict" method="post">
+        <input type="text" name="ticker" placeholder="Enter Stock Ticker (e.g., AAPL)" required>
+        <input type="hidden" name="choice" value="1">
+        <button type="submit">Predict Price</button>
+    </form>
+
+    <form id="llm-form" class="hidden" action="/predict" method="post">
+        <input type="hidden" name="choice" value="2">
+        <button type="submit">Find Bullish Stock & Predict</button>
+    </form>
+
+    {% if prediction_text %}
+    <div id="results">
+        <h2>Prediction Result</h2>
+        <p id="prediction">{{ prediction_text }}</p>
+        <canvas id="priceChart" width="400" height="200"></canvas>
+    </div>
+    {% endif %}
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-message" id="loadingMessage"></div>
+            <div class="loading-fact" id="loadingFact"></div>
+            <div class="creator-note">
+                Developed by Ankit Pimpalkar<br>
+                Bridging Finance & AI for Smarter Investment Decisions
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function selectOption(option) {
+        const manualOption = document.getElementById('manual-option');
+        const llmOption = document.getElementById('llm-option');
+        const manualForm = document.getElementById('manual-form');
+        const llmForm = document.getElementById('llm-form');
+
+        if (option === 'manual') {
+            manualOption.classList.add('active');
+            llmOption.classList.remove('active');
+            manualForm.classList.remove('hidden');
+            llmForm.classList.add('hidden');
+        } else if (option === 'llm') {
+            llmOption.classList.add('active');
+            manualOption.classList.remove('active');
+            llmForm.classList.remove('hidden');
+            manualForm.classList.add('hidden');
+        }
+    }
+
+    // Default selection
+    selectOption('manual');
+
+    {% if chart_data %}
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    const chartData = {{ chart_data|tojson }};
+
+    const labels = chartData.dates;
+    const prices = chartData.prices;
+    
+    // Add the prediction to the chart
+    labels.push('Next Day (Predicted)');
+    prices.push(chartData.prediction);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Close Price',
+                data: prices,
+                borderColor: '#1a73e8',
+                backgroundColor: 'rgba(26, 115, 232, 0.1)',
+                fill: true,
+                tension: 0.1
+            },
+            {
+                label: 'Prediction',
+                data: new Array(prices.length - 1).fill(null).concat(chartData.prediction),
+                borderColor: '#e84393',
+                backgroundColor: '#e84393',
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }
+        ]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value, index, values) {
+                            return '₹' + value.toFixed(2);
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    const loadingMessages = [
+        "Initializing LSTM deep learning model for accurate stock price prediction...",
+        "Collecting 3 years of historical data for comprehensive analysis...",
+        "Training neural networks on market patterns and trends...",
+        "Analyzing complex market dynamics using advanced AI algorithms...",
+        "Processing market sentiment and technical indicators...",
+        "Calibrating prediction models with historical volatility data...",
+        "Leveraging deep learning to identify market patterns..."
+    ];
+
+    const loadingFacts = [
+        "Did you know? Our LSTM model processes over 750 trading days of data for each prediction!",
+        "FinSight combines financial expertise with AI technology.",
+        "LSTM networks are particularly good at learning long-term dependencies in financial data.",
+        "We use advanced deep learning to analyze complex market patterns.",
+        "Our model considers multiple technical indicators for accurate predictions.",
+        "Machine learning helps identify patterns that might be missed by traditional analysis.",
+        "FinSight: Where Financial Markets Meet Artificial Intelligence!"
+    ];
+
+    function showLoading() {
+        document.getElementById('loadingOverlay').style.display = 'flex';
+        rotateMessages();
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+
+    let messageIndex = 0;
+    let factIndex = 0;
+
+    function rotateMessages() {
+        const messageElement = document.getElementById('loadingMessage');
+        const factElement = document.getElementById('loadingFact');
+        
+        setInterval(() => {
+            messageElement.textContent = loadingMessages[messageIndex];
+            factElement.textContent = loadingFacts[factIndex];
+            
+            messageIndex = (messageIndex + 1) % loadingMessages.length;
+            factIndex = (factIndex + 1) % loadingFacts.length;
+        }, 4000);
+    }
+
+    // Modify the form submission to show loading
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', () => {
+            showLoading();
+        });
+    });
+
+    // Example of using loading overlay
+    document.getElementById('manual-form').onsubmit = function() {
+        showLoading('Analyzing data and predicting stock price. Please wait...', 'Did you know? Stock prices are influenced by various factors including market demand, investor sentiment, and economic indicators.');
+    };
+
+    document.getElementById('llm-form').onsubmit = function() {
+        showLoading('Finding the most promising bullish stock and predicting its price. Please wait...', 'Fun Fact: The stock market has historically provided higher returns than other forms of investments over the long term.');
+    };
+
+    // Hide loading overlay when the prediction is displayed
+    {% if prediction_text %}
+    hideLoading();
+    {% endif %}
+</script>
+
+</body>
+</html>

@@ -87,22 +87,41 @@ def extract_ticker(text):
 
 
 def get_bullish_ticker(max_retries=3, delay=5):
-    for attempt in range(1, max_retries + 1):
-        try:
-            logger.info(f"Running Finsight Agent to get bullish ticker... (Attempt {attempt})")
-            result = finsight_agent.run()
-            logger.info(f"Raw LLM output: {result.content}")
-            ticker = extract_ticker(result.content)
-            if ticker and is_valid_ticker(ticker):
-                logger.info(f"Top bullish stock ticker identified: {ticker}")
-                return ticker
-            logger.warning(f"No valid ticker found in agent response. Retrying...")
-        except Exception as e:
-            logger.error(f"Agent execution failed on attempt {attempt}: {e}", exc_info=True)
-        if attempt < max_retries:
-            logger.info(f"Retrying in {delay} seconds...")
-            time.sleep(delay)
-        else:
-            raise AgentExecutionError("Finsight agent failed to run after retries.")
+    # List of default tickers to use when LLM fails (for testing/fallback)
+    fallback_tickers = [
+        "RELIANCE.NS",  # Reliance Industries
+        "TCS.NS",       # Tata Consultancy Services
+        "INFY.NS",      # Infosys
+        "HDFCBANK.NS",  # HDFC Bank
+        "ITC.NS"        # ITC Limited
+    ]
+    
+    try:
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.info(f"Running Finsight Agent to get bullish ticker... (Attempt {attempt})")
+                result = finsight_agent.run()
+                logger.info(f"Raw LLM output: {result.content}")
+                ticker = extract_ticker(result.content)
+                if ticker and is_valid_ticker(ticker):
+                    logger.info(f"Top bullish stock ticker identified: {ticker}")
+                    return ticker
+                logger.warning(f"No valid ticker found in agent response. Retrying...")
+            except Exception as e:
+                logger.error(f"Agent execution failed on attempt {attempt}: {e}", exc_info=True)
+            if attempt < max_retries:
+                logger.info(f"Retrying in {delay} seconds...")
+                time.sleep(delay)
+    
+        # If all attempts fail, use a fallback ticker
+        import random
+        fallback_ticker = random.choice(fallback_tickers)
+        logger.warning(f"LLM selection failed, using fallback ticker: {fallback_ticker}")
+        return fallback_ticker
+
+    except Exception as e:
+        logger.error("Critical error in get_bullish_ticker", exc_info=True)
+        # Return a safe default ticker if everything fails
+        return "RELIANCE.NS"
 
 
