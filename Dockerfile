@@ -9,10 +9,6 @@ COPY . .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install .
 
-# Configure for Cloud Run
-ENV PORT=8080
-EXPOSE ${PORT}
-
 # Set Python to run in unbuffered mode
 ENV PYTHONUNBUFFERED=1
 

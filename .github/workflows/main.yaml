@@ -90,7 +90,6 @@ jobs:
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}/app:${{ github.sha }}
           region: ${{ env.REGION }}
           env_vars: |
-            PORT=8080
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
 
