@@ -92,7 +92,10 @@ jobs:
           env_vars: |
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
-          flags: --allow-unauthenticated --memory=1Gi
+          flags: |
+            --allow-unauthenticated
+            --memory=2Gi
+            --cpu=1
 
       - name: Verify Deployment
         if: ${{ success() }}

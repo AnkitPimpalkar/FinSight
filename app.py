@@ -1,15 +1,24 @@
 import os
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 import subprocess
 import sys
 import pandas as pd
 from pathlib import Path
+import gc
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # Get API keys from environment variables
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
 
 app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 # Add a health check endpoint
 @app.route('/health')
@@ -19,6 +28,7 @@ def health_check():
 # Add better error handling for the main routes
 @app.errorhandler(500)
 def server_error(e):
+    logging.error(f"Server error: {e}", exc_info=True)
     return {'error': 'Internal server error occurred'}, 500
 
 @app.errorhandler(404)
@@ -36,16 +46,22 @@ def get_chart_data_from_pipeline(ticker):
             print(f"Data file not found at {data_path}")
             return None, None
 
-        hist_df = pd.read_csv(data_path)
+        # Read only necessary columns and use chunks for memory efficiency
+        chunks = pd.read_csv(data_path, usecols=['Datetime', 'Ticker', 'Close'], chunksize=1000)
+        relevant_data = []
         
-        # Filter for the specific ticker
-        hist_df = hist_df[hist_df['Ticker'] == ticker]
+        for chunk in chunks:
+            # Filter for the specific ticker
+            ticker_data = chunk[chunk['Ticker'] == ticker]
+            if not ticker_data.empty:
+                relevant_data.append(ticker_data)
         
-        if hist_df.empty:
+        if not relevant_data:
             print(f"No data found for ticker {ticker}")
             return None, None
             
-        # Ensure data is sorted by date if not already
+        # Combine filtered chunks
+        hist_df = pd.concat(relevant_data, ignore_index=True)
         hist_df['Datetime'] = pd.to_datetime(hist_df['Datetime'])
         hist_df = hist_df.sort_values('Datetime')
 
@@ -59,6 +75,10 @@ def get_chart_data_from_pipeline(ticker):
         prices = last_7_days['Close'].tolist()
         dates = last_7_days['Datetime'].dt.strftime('%Y-%m-%d').tolist()
         
+        # Clean up memory
+        del hist_df, last_7_days
+        gc.collect()
+        
         print(f"Chart data prepared: {len(dates)} dates and {len(prices)} prices for {ticker}")
         return prices, dates
     except Exception as e:
@@ -66,70 +86,102 @@ def get_chart_data_from_pipeline(ticker):
         return None, None
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/predict', methods=['POST'])
+@app.route('/predict', methods=['GET', 'POST'])
 def predict():
-    choice = request.form['choice']
-    ticker = request.form.get('ticker') # Safely get the ticker
+    if request.method == 'GET':
+        return redirect(url_for('index'))
+        
+    try:
+        logging.info("Prediction request received.")
+        choice = request.form['choice']
+        ticker = request.form.get('ticker') # Safely get the ticker
+        logging.info(f"Choice: {choice}, Ticker: {ticker}")
 
-    # Build the command to run the ML pipeline
-    command = [sys.executable, 'main.py', '--choice', choice]
-    if choice == '1':
-        if not ticker:
+        if choice == '1' and not ticker:
+            logging.warning("Ticker symbol is required for manual prediction.")
             return render_template('index.html', prediction_text="Error: Ticker symbol is required for manual prediction.")
-        command.extend(['--ticker', ticker])
 
-    # Execute the pipeline script with UTF-8 encoding
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='ignore')
-    stdout, stderr = process.communicate()
+        # Build the command to run the ML pipeline
+        command = [sys.executable, 'main.py', '--choice', choice]
+        if choice == '1':
+            command.extend(['--ticker', ticker])
+        
+        logging.info(f"Executing command: {' '.join(command)}")
 
-    if process.returncode != 0:
-        return render_template('index.html', prediction_text=f"Error running prediction pipeline: {stderr}")
-
-    # Parse the output from the script, ensuring stdout is not None
-    prediction_text = ""
-    if stdout:
-        lines = stdout.splitlines()
-        for line in lines:
-            if "LLM Selected Ticker:" in line:
-                ticker = line.split(':')[1].strip()
-            elif "Predicted Close Price for" in line:
-                prediction_text = line
-
-    if not ticker or not prediction_text:
-        return render_template('index.html', prediction_text="Could not retrieve prediction. Please check the logs.")
-
-    # Fetch historical data for the chart from the pipeline's output
-    prices, dates = get_chart_data_from_pipeline(ticker)
-    chart_data = None
-    if prices and dates:
+        # Execute the pipeline script with UTF-8 encoding
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding='utf-8',
+            errors='ignore'
+        )
+        
         try:
-            # Extract the predicted price from the prediction text
-            predicted_price_str = prediction_text.split(':')[-1].strip()
-            predicted_price = float(predicted_price_str)
-            
-            print(f"Creating chart data with prediction {predicted_price} for {ticker}")
-            
-            chart_data = {
-                'dates': dates,
-                'prices': prices,
-                'prediction': predicted_price,
-                'ticker': ticker
-            }
-            
-            print(f"Chart data created: {chart_data}")
-            
-            # Keep the prediction text as is since it's already formatted
+            stdout, stderr = process.communicate(timeout=300)  # Increased timeout to 5 minutes
+            logging.info(f"Subprocess stdout: {stdout}")
+            if stderr:
+                logging.error(f"Subprocess stderr: {stderr}")
+        except subprocess.TimeoutExpired:
+            process.kill()
+            logging.error("Prediction subprocess timed out.")
+            return render_template('index.html', prediction_text="Error: Prediction timeout")
 
-        except (ValueError, IndexError):
-            # If parsing fails, show the raw text but no chart
-            pass
+        if process.returncode != 0:
+            logging.error(f"Prediction script failed with return code {process.returncode}")
+            return render_template('index.html', prediction_text=f"Error: {stderr}")
 
-    return render_template('index.html', prediction_text=prediction_text, chart_data=chart_data)
+        # Parse the output from the script, ensuring stdout is not None
+        prediction_text = ""
+        if stdout:
+            lines = stdout.splitlines()
+            for line in lines:
+                if "LLM Selected Ticker:" in line:
+                    ticker = line.split(':')[1].strip()
+                elif "Predicted Close Price for" in line:
+                    prediction_text = line
 
+        if not ticker or not prediction_text:
+            logging.error("Could not retrieve prediction from script output.")
+            return render_template('index.html', prediction_text="Could not retrieve prediction. Please check the logs.")
+
+        logging.info(f"Prediction successful for ticker: {ticker}")
+        # Fetch historical data for the chart from the pipeline's output
+        prices, dates = get_chart_data_from_pipeline(ticker)
+        chart_data = None
+        if prices and dates:
+            try:
+                # Extract the predicted price from the prediction text
+                predicted_price_str = prediction_text.split(':')[-1].strip()
+                predicted_price = float(predicted_price_str)
+                
+                logging.info(f"Creating chart data with prediction {predicted_price} for {ticker}")
+                
+                chart_data = {
+                    'dates': dates,
+                    'prices': prices,
+                    'prediction': predicted_price,
+                    'ticker': ticker
+                }
+                
+                logging.info(f"Chart data created: {chart_data}")
+                
+                # Keep the prediction text as is since it's already formatted
+
+            except (ValueError, IndexError) as e:
+                logging.error(f"Error parsing prediction for chart: {e}")
+                # If parsing fails, show the raw text but no chart
+                pass
+
+        # Clean up
+        gc.collect()
+        
+        logging.info("Rendering template with prediction.")
+        return render_template('index.html', prediction_text=prediction_text, chart_data=chart_data)
+    except Exception as e:
+        logging.error(f"An error occurred in the predict function: {e}", exc_info=True)
+        return render_template('index.html', prediction_text=f"Error: {str(e)}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
