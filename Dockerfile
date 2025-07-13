@@ -15,10 +15,10 @@ ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 ENV HOST=0.0.0.0
 
-# Create artifacts directory with proper permissions
-RUN mkdir -p /app/artifacts/data_ingestion && \
-    chown -R nobody:nogroup /app/artifacts && \
-    chmod -R 777 /app/artifacts
+# Create and set permissions for directories the app needs to write to
+RUN mkdir -p /app/artifacts /app/logs && \
+    chown -R nobody:nogroup /app/artifacts /app/logs && \
+    chmod -R 700 /app/artifacts /app/logs
 
 USER nobody
 

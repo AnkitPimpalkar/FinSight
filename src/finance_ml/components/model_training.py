@@ -32,8 +32,18 @@ class ModelTraining:
                       loss="mae",
                       metrics=[keras.metrics.RootMeanSquaredError()])
 
+        # Add early stopping
+        early_stopping = keras.callbacks.EarlyStopping(
+            monitor='loss', patience=5, restore_best_weights=True
+        )
+
         # Train the model using parameters
-        model.fit(X_train, y_train, epochs=self.params.epochs, batch_size=self.params.batch_size)
+        model.fit(
+            X_train, y_train, 
+            epochs=self.params.epochs, 
+            batch_size=self.params.batch_size,
+            callbacks=[early_stopping]
+        )
 
         # Save the trained model
         model.save(os.path.join(self.config.root_dir, self.config.trained_model_name))

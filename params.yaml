@@ -1,5 +1,5 @@
 data_ingestion:
-  period: "1y"      
+  period: "3y"      
   interval: "1d"     
 
 model_training:
