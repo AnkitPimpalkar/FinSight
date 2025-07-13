@@ -9,7 +9,8 @@ COPY . .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install .
 
-# Set Python to run in unbuffered mode
+# Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
 
-CMD ["python3", "-u", "app.py"]
+CMD ["python", "app.py"]

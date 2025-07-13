@@ -92,7 +92,7 @@ jobs:
           env_vars: |
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
-          flags: --allow-unauthenticated
+          flags: --allow-unauthenticated --memory=1Gi
 
       - name: Verify Deployment
         if: ${{ success() }}
@@ -100,7 +100,19 @@ jobs:
           echo "Deployment Status: Success"
           echo "Service URL: ${{ steps.deploy.outputs.url }}"
           echo "Checking service health..."
-          curl -s -o /dev/null -w "HTTP Status: %{http_code}" ${{ steps.deploy.outputs.url }}
+          # Wait for service to be fully available
+          sleep 30
+          # Perform health check with detailed output
+          HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" ${{ steps.deploy.outputs.url }})
+          echo "HTTP Status Code: $HTTP_STATUS"
+          echo "Response Body:"
+          cat response.txt
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Service health check failed!"
+            echo "Checking service logs..."
+            gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.IMAGE_NAME }}" --limit 10
+            exit 1
+          fi
 
       - name: Error Information
         if: ${{ failure() }}
