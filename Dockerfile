@@ -14,11 +14,12 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 ENV HOST=0.0.0.0
+ENV TF_CPP_MIN_LOG_LEVEL=2
 
 # Create and set permissions for directories the app needs to write to
-RUN mkdir -p /app/artifacts /app/logs && \
-    chown -R nobody:nogroup /app/artifacts /app/logs && \
-    chmod -R 700 /app/artifacts /app/logs
+RUN mkdir -p /app/artifacts /app/logs /app/mlruns && \
+    chown -R nobody:nogroup /app/artifacts /app/logs /app/mlruns && \
+    chmod -R 700 /app/artifacts /app/logs /app/mlruns
 
 USER nobody
 

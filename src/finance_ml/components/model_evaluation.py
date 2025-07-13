@@ -36,9 +36,13 @@ class ModelEvaluation:
             raise ValueError("Model evaluation did not return expected metrics (loss, rmse).")
 
         # Log metrics to MLflow (autologging will handle this, but you can keep manual logging for custom metrics)
-        with mlflow.start_run():
-            mlflow.log_metric("test_loss_mae", float(loss))
-            mlflow.log_metric("test_rmse", float(rmse))
+        try:
+            with mlflow.start_run():
+                mlflow.log_metric("test_loss_mae", float(loss))
+                mlflow.log_metric("test_rmse", float(rmse))
+        except Exception as e:
+            import logging
+            logging.warning(f"MLflow logging failed: {e}. Continuing without MLflow tracking.")
 
         # Save metrics to a JSON file
         metrics = {

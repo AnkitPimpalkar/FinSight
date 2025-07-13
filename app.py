@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Get API keys from environment variables
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 app = Flask(__name__)
 
@@ -29,6 +29,8 @@ def health_check():
 @app.errorhandler(500)
 def server_error(e):
     logging.error(f"Server error: {e}", exc_info=True)
+    if "Permission denied: '/app/mlruns'" in str(e):
+        return {'error': 'MLflow permission error. Please check container permissions.'}, 500
     return {'error': 'Internal server error occurred'}, 500
 
 @app.errorhandler(404)
