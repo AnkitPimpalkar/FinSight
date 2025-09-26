@@ -23,7 +23,7 @@ model_training:
   
 model_evaluation:
   root_dir: artifacts/model_evaluation
-  metrics_file_name: metrics.json
+  metrics_file_name: artifacts/model_evaluation/metrics.json
   model_path: artifacts/model_training/lstm_model.keras
   X_test_path: artifacts/data_transformation/X_test.npy
   y_test_path: artifacts/data_transformation/y_test.npy

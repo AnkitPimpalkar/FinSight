@@ -21,6 +21,8 @@ def run_pipeline():
     if choice is None:
         choice = input("Select ticker source:\n1. Enter manually\n2. Use LLM agent\nEnter 1 or 2: ").strip()
 
+
+
     STAGE_NAME = "Ticker Finder Stage"
     try:
         logger.info(f">>>>>> {STAGE_NAME} started <<<<<<")

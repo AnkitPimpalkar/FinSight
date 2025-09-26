@@ -17,8 +17,17 @@ class ModelPredictionPipeline:
 
             # Perform model prediction
             model_prediction = ModelPrediction(config=model_prediction_config)
-            model_prediction.predict()
+            result = model_prediction.predict()
+            return result
 
+        except ValueError as e:
+            if "cannot reshape array" in str(e):
+                logger.error("Error: Insufficient data for prediction with current lookback window size")
+                logger.error(f"Original error: {str(e)}")
+                raise ValueError("Insufficient historical data for the selected ticker. Please choose a ticker with more data points.")
+            else:
+                logger.exception(e)
+                raise e
         except Exception as e:
             logger.exception(e)
             raise e

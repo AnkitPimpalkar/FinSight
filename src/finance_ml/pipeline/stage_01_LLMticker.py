@@ -1,4 +1,5 @@
 from src.finance_ml.components.LLM_ticker import get_bullish_ticker, is_valid_ticker
+from src.finance_ml.utils.common import normalize_input_to_ticker
 from src.finance_ml import logger
 
 class TickerFinderPipeline:
@@ -11,15 +12,22 @@ class TickerFinderPipeline:
         if choice == "1":
             if ticker is None:
                 while True:
-                    ticker = input("Enter the ticker symbol (e.g., ITC.NS): ").strip().upper()
-                    if is_valid_ticker(ticker):
+                    user_input = input("Enter company name or ticker symbol (e.g., Reliance or RELIANCE.NS): ").strip()
+                    normalized_ticker = normalize_input_to_ticker(user_input)
+                    if normalized_ticker and is_valid_ticker(normalized_ticker):
+                        ticker = normalized_ticker
+                        print(f"Using ticker: {ticker}")
                         break
-                    print("Invalid ticker. Please enter a valid NSE ticker (e.g., ITC.NS).")
+                    print("Invalid input. Please enter a valid company name or NSE ticker.")
             else:
-                if not is_valid_ticker(ticker):
-                    print(f"Invalid ticker provided: {ticker}. Please enter a valid NSE ticker.")
-                    # Decide how to handle this - maybe raise an error or ask again
-                    raise ValueError(f"Invalid ticker provided: {ticker}")
+                # Convert the provided ticker/company name to a valid ticker
+                normalized_ticker = normalize_input_to_ticker(ticker)
+                if normalized_ticker and is_valid_ticker(normalized_ticker):
+                    ticker = normalized_ticker
+                    logger.info(f"Normalized input '{ticker}' to valid ticker: {normalized_ticker}")
+                else:
+                    print(f"Invalid input provided: {ticker}. Please enter a valid company name or NSE ticker.")
+                    raise ValueError(f"Invalid input provided: {ticker}")
 
         elif choice == "2":
             ticker = get_bullish_ticker()

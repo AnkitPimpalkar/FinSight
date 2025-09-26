@@ -16,8 +16,7 @@ class ModelTraining:
         # Load the transformed data
         X_train = np.load(os.path.join("artifacts", "data_transformation", "X_train.npy"))
         y_train = np.load(os.path.join("artifacts", "data_transformation", "y_train.npy"))
-        X_test = np.load(os.path.join("artifacts", "data_transformation", "X_test.npy"))
-        y_test = np.load(os.path.join("artifacts", "data_transformation", "y_test.npy"))
+
 
         # Build the Model using parameters
         model = keras.models.Sequential()

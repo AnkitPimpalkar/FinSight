@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2E4057">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>FinSight - Stock Price Predictor</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -19,7 +22,7 @@
             background-color: var(--background);
             color: var(--text);
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -27,7 +30,7 @@
         }
         .container {
             background-color: #fff;
-            padding: 40px;
+            padding: clamp(20px, 5vw, 40px);
             border-radius: 16px;
             box-shadow: 0 8px 30px var(--shadow);
             width: 100%;
@@ -35,7 +38,7 @@
             text-align: center;
         }
         .logo {
-            font-size: 2.5em;
+            font-size: clamp(2em, 5vw, 2.5em);
             font-weight: 700;
             color: var(--primary);
             margin-bottom: 5px;
@@ -48,8 +51,8 @@
         .logo::before {
             content: '';
             display: inline-block;
-            width: 32px;
-            height: 32px;
+            width: clamp(24px, 5vw, 32px);
+            height: clamp(24px, 5vw, 32px);
             background: linear-gradient(135deg, var(--secondary), var(--accent));
             clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             transition: transform 0.3s ease;
@@ -58,27 +61,38 @@
             transform: rotate(180deg);
         }
         .subtitle {
-            font-size: 1.1em;
+            font-size: clamp(0.9em, 3vw, 1.1em);
             color: var(--text);
             opacity: 0.8;
-            margin-bottom: 30px;
+            margin-bottom: clamp(20px, 5vh, 30px);
         }
         .options {
             display: flex;
+            flex-direction: row;
             gap: 20px;
             justify-content: center;
             margin-bottom: 30px;
         }
         .option {
             background-color: #fff;
-            padding: 25px;
+            padding: 20px;
             border-radius: 12px;
             border: 1px solid rgba(0,0,0,0.1);
-            width: 50%;
+            flex: 1;
+            min-width: 0;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+        }
+        /* For mobile devices */
+        @media (max-width: 600px) {
+            .options {
+                flex-direction: column;
+            }
+            .option {
+                width: 100%;
+            }
         }
         .option:hover, .option.active {
             border-color: var(--secondary);
@@ -100,12 +114,15 @@
             margin-top: 20px;
         }
         input[type="text"] {
-            width: calc(100% - 22px);
+            width: 100%;
+            box-sizing: border-box;
             padding: 12px;
             border: 1px solid rgba(0,0,0,0.1);
             border-radius: 8px;
             font-size: 16px;
             transition: border-color 0.3s, box-shadow 0.3s;
+            -webkit-appearance: none; /* Remove iOS default styling */
+            appearance: none; /* Standard property for compatibility */
         }
         input[type="text"]:focus {
             outline: none;
@@ -122,10 +139,22 @@
             font-size: 16px;
             margin-top: 15px;
             transition: transform 0.2s, background-color 0.3s;
+            width: auto;
+            min-width: 200px;
+            touch-action: manipulation; /* Improves touchscreen interaction */
         }
         button:hover {
             background-color: #037068;
             transform: translateY(-1px);
+        }
+        
+        /* Mobile-specific button styles */
+        @media (max-width: 600px) {
+            button {
+                width: 100%;
+                min-width: unset;
+                padding: 14px;
+            }
         }
         #llm-form button {
             background-color: var(--accent);
@@ -158,101 +187,880 @@
             position: fixed;
             top: 0;
             left: 0;
+            right: 0;
+            bottom: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
+            background: linear-gradient(135deg, rgba(25, 42, 86, 0.98) 30%, rgba(11, 82, 91, 0.97) 100%);
+            z-index: 9998;
+            color: #fff;
+            text-align: center;
+            transition: opacity 0.4s cubic-bezier(.4,0,.2,1);
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            letter-spacing: 0.01em;
+            padding: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+            opacity: 1;
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+        }
+        
+        .loading-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
             justify-content: center;
             align-items: center;
-            flex-direction: column;
-            color: white;
-            text-align: center;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .loading-overlay:before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 40%);
+            animation: shimmer 15s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .loading-overlay:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%);
+            pointer-events: none;
+            z-index: 1;
         }
         .loading-content {
-            max-width: 600px;
-            padding: 20px;
+            z-index: 5; /* Ensure content is above all background layers */
         }
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #1a73e8;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
+        @keyframes shimmer {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .loading-content {
+            max-width: 480px;
+            width: 90%;
+            margin: 0 auto;
+            padding: clamp(20px, 5vw, 36px) clamp(15px, 4vw, 32px) clamp(15px, 3vw, 28px);
+            background: rgba(255,255,255,0.07);
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1.5px solid rgba(255,255,255,0.13);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            animation: pulse 3s infinite ease-in-out;
+            position: relative;
+            z-index: 10;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+            50% { box-shadow: 0 12px 36px rgba(55,189,107,0.25); }
+            100% { box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+        }
+        .loading-spinner {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            margin: 0 0 28px 0;
+        }
+        .loading-spinner:before, .loading-spinner:after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            animation-duration: 1.8s;
+            animation-iteration-count: infinite;
+            animation-timing-function: ease-in-out;
+            filter: drop-shadow(0 0 10px rgba(26,115,232,0.15));
+        }
+        .loading-spinner:before {
+            width: 100%;
+            height: 100%;
+            border: 4px solid rgba(255,255,255,0.15);
+            border-top: 4px solid #37BD6B;
+            border-right: 4px solid transparent;
+            border-radius: 50%;
+            animation: spin-outer 1.5s cubic-bezier(.4,0,.2,1) infinite;
+            top: 0;
+            left: 0;
+        }
+        .loading-spinner:after {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.15);
+            border-bottom: 4px solid #1a73e8;
+            border-left: 4px solid transparent;
+            animation: spin-inner 1.2s cubic-bezier(.4,0,.2,1) infinite;
+            top: 10px;
+            left: 10px;
+        }
+        @keyframes spin-outer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes spin-inner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-720deg); }
+        }
         .loading-message {
-            font-size: 1.2em;
-            margin: 20px 0;
-            line-height: 1.6;
+            font-size: clamp(1em, 4vw, 1.25em);
+            margin: 0 0 18px 0;
+            line-height: 1.7;
+            font-weight: 500;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(46,64,87,0.2);
+            letter-spacing: 0.01em;
+            min-height: 60px;
+            transition: opacity 0.8s ease;
+            opacity: 1;
+            position: relative;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+            background-size: 200% 100%;
+            border-radius: 6px;
+            padding: 8px;
+        }
+        .loading-message.fade {
+            opacity: 0;
         }
         .loading-fact {
             font-style: italic;
-            margin: 10px 0;
-            color: #8ab4f8;
+            margin: 0 0 10px 0;
+            color: #b2e3e0;
+            font-size: clamp(0.9em, 3.5vw, 1.05em);
+            text-shadow: 0 1px 6px rgba(4,138,129,0.15);
+            min-height: 32px;
+            transition: opacity 0.8s ease;
+            opacity: 1;
+        }
+        .loading-fact.fade {
+            opacity: 0;
+        }
+        .loading-progress-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin: 10px 0 5px;
+            overflow: hidden;
+        }
+        .loading-progress-bar {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--accent), var(--secondary));
+            border-radius: 2px;
+            transition: width 1s ease;
         }
         .creator-note {
-            margin-top: 20px;
-            font-size: 0.9em;
-            color: #aaa;
+            margin-top: 18px;
+            font-size: clamp(0.8em, 3vw, 0.98em);
+            color: #e0e0e0;
+            opacity: 0.85;
+            letter-spacing: 0.01em;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            padding-top: 10px;
+            width: 100%;
+            text-align: center;
+            background: linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 100%);
+            background-size: 200% 100%;
+            animation: gradient 8s ease infinite;
+            padding: 10px 0 4px;
+            border-radius: 0 0 10px 10px;
         }
+        @keyframes gradient {
+            0% {background-position: 0% 50%}
+            50% {background-position: 100% 50%}
+            100% {background-position: 0% 50%}
+        }
+        .results-section {
+            margin-top: 40px;
+            text-align: left;
+        }
+        .result-box {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .result-box h3 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+        .prediction-value {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        .prediction-context {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .metric-item {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .metric-item h4 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            color: var(--primary);
+        }
+        .chart-container {
+            margin-top: 40px;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            height: 400px; /* Set a fixed height for the chart */
+        }
+        /* Adjust chart height on mobile */
+        @media (max-width: 600px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        .highlights-section {
+            margin-top: 40px;
+            text-align: left;
+        }
+        .highlights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .highlight-item {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .highlight-item h4 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            color: var(--primary);
+            word-break: break-word;
+        }
+        
+        /* Additional mobile responsive styles */
+        @media (max-width: 600px) {
+            .highlights-grid {
+                grid-template-columns: 1fr;
+            }
+            .result-box {
+                padding: 15px;
+            }
+            h2, h3 {
+                font-size: 1.4em;
+            }
+            .prediction-value {
+                font-size: 1.1em;
+            }
+            .option h2 {
+                font-size: 1.2em;
+                margin-bottom: 5px;
+            }
+            .option p {
+                font-size: 0.9em;
+                margin-top: 5px;
+            }
+            .container {
+                border-radius: 12px;
+            }
+            .metric-item h4 {
+                font-size: 0.95em;
+            }
+            .loading-spinner {
+                width: 46px;
+                height: 46px;
+            }
+            .highlight-item {
+                padding: 12px;
+                font-size: 0.95em;
+            }
+        }
+        
+        /* Prevent text zoom on input focus in iOS */
+        @media screen and (-webkit-min-device-pixel-ratio: 0) {
+            select, input, button {
+                font-size: 16px; /* Prevents iOS zoom on focus */
+            }
+        }
+        .banksight-premium {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 0 0 40px 0;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(255, 215, 0, 0.55), 0 2px 8px 0 rgba(184, 134, 11, 0.25);
+        }
+
+        .banksight-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .banksight-logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .banksight-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        .banksight-logo h2 {
+            color: #b8860b;
+            margin: 0;
+            font-size: 1.8em;
+            letter-spacing: -0.5px;
+            text-shadow: 0 1px 4px rgba(184, 134, 11, 0.15);
+        }
+
+        .premium-badge {
+            background: linear-gradient(135deg, #ffd700, #b8860b);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #000;
+        }
+
+        .banksight-disclaimer {
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .premium-description {
+            color: #037068;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .premium-description p {
+            margin: 0 0 5px 0;
+            font-size: 1.1em;
+        }
+
+        .premium-description small {
+            color: #aaa;
+            display: block;
+        }
+
+        .premium-form {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .premium-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            background: #fff;
+            border-radius: 8px;
+            color: #2C3E50;
+            font-size: 1em;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.10);
+        }
+        
+        .premium-input::placeholder {
+            color: #888;
+            opacity: 1;
+        }
+
+        .premium-button {
+            background: linear-gradient(135deg, #ffd700, #b8860b);
+            color: #000;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .premium-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+        }
+
+        .banksight-notice {
+            color: #888;
+            font-size: 0.85em;
+            text-align: center;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 215, 0, 0.1);
+        }
+
+        @media (max-width: 600px) {
+            .banksight-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .premium-form {
+                flex-direction: column;
+            }
+            
+            .premium-input, .premium-button {
+                width: 100%;
+            }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            overflow-y: auto; /* Allow vertical scrolling on the modal overlay */
+            padding: 20px 0; /* Add some padding for smaller screens */
+        }
+
+        .modal-content {
+            background: linear-gradient(145deg, #1a1a1a, #2d2d2d);
+            padding: 25px;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+            border-radius: 12px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            color: #fff;
+            animation: modalSlide 0.4s ease-out;
+            position: relative;
+            z-index: 10000;
+            margin: auto; /* Center the content vertically and horizontally */
+        }
+
+        @keyframes modalSlide {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-content h2 {
+            color: #ffd700;
+            margin: 0 0 20px 0;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .disclaimer-text {
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .disclaimer-primary {
+            color: #ffd700;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .disclaimer-text ul {
+            padding-left: 20px;
+            margin: 15px 0;
+            color: #e0e0e0;
+        }
+
+        .disclaimer-text li {
+            margin-bottom: 10px;
+        }
+
+        .resource-note {
+            color: #ffd700;
+            font-weight: 600;
+            margin: 20px 0 5px 0;
+        }
+
+        .model-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .model-title {
+            color: #ffd700;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .modal-button {
+            position: relative;
+            z-index: 10001;
+            background: linear-gradient(135deg, #ffd700, #b8860b);
+            color: #000;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+
+        .modal-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+        }
+
+        @media (max-width: 600px) {
+            .modal-content {
+                margin: 20px;
+                padding: 20px;
+                width: auto;
+            }
+            
+            .modal-content h2 {
+                font-size: 1.5em;
+            }
+        }
+        .premium-subtext {
+            color: #b8860b;
+            font-size: 0.95em;
+            margin: 5px 0;
+            font-weight: 600;
+            text-shadow: 0 1px 4px rgba(184, 134, 11, 0.10);
+        }
+
+        .banksight-premium {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .banksight-premium::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 215, 0, 0.5), 
+                transparent
+            );
+        }
+        .prediction-value {
+            font-size: 2em !important;
+            font-weight: 700;
+            color: #037068;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 255, 255, 0.8));
+            padding: 20px;
+            border-radius: 12px;
+            margin: 25px 0;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.15);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            animation: glowPrediction 2s ease-in-out infinite;
+        }
+
+        @keyframes glowPrediction {
+            0% { box-shadow: 0 8px 15px rgba(255, 215, 0, 0.45); }
+            50% { box-shadow: 0 16px 25px rgba(255, 215, 0, 0.65); }
+            100% { box-shadow: 0 8px 15px rgba(255, 215, 0, 0.45); }
+        }
+
+
     </style>
 </head>
 <body>
-
-<div class="container">
-    <div class="logo">FinSight</div>
-    <div class="subtitle">Intelligent Stock Price Predictor</div>
-
-    <div class="options">
-        <div class="option" id="manual-option" onclick="selectOption('manual')">
-            <h2>Manual Prediction</h2>
-            <p>Enter a stock ticker to predict its next day closing price.</p>
-        </div>
-        <div class="option" id="llm-option" onclick="selectOption('llm')">
-            <h2>LLM-Powered Prediction</h2>
-            <p>Let our AI choose the most promising bullish stock for you.</p>
+    <div id="disclaimerModal" class="modal">
+        <div class="modal-content">
+            <h2>⚠️ Important Notice</h2>
+            <div class="disclaimer-text">
+                <p class="disclaimer-primary">For Recruiters & Portfolio Review Only</p>
+                <ul>
+                    <li>This is a demonstration project showcasing ML/AI capabilities in financial forecasting.</li>
+                    <li>Both FinSight and BankSight are prototype models for learning purposes only.</li>
+                    <li>Running on Google Cloud Run with limited API calls to manage costs.</li>
+                    <li>Not intended for actual trading or investment decisions.</li>
+                    <li>Using these predictions for trading may result in financial losses.</li>
+                </ul>
+                <p class="resource-note"> Resource Notice:</p>
+                <p>This application runs on a paid Google Cloud infrastructure. Please be mindful of usage as each prediction consumes cloud resources.</p>
+                
+                <div class="model-info">
+                    <p class="model-title">About Our Models:</p>
+                    <ul>
+                        <li><strong>BankSight Premium:</strong> MAPE 1.50-3.00% | Next-day BankNifty predictions</li>
+                        <li><strong>FinSight:</strong> General stock prediction capabilities for demonstration</li>
+                        <li><strong>LLM-FinSight:</strong> General stock selection and prediction capabilities for demonstration</li>
+                    </ul>
+                </div>
+            </div>
+            <button id="acceptDisclaimer" class="modal-button">I Understand</button>
         </div>
     </div>
 
-    <form id="manual-form" class="hidden" action="/predict" method="post">
-        <input type="text" name="ticker" placeholder="Enter Stock Ticker (e.g., AAPL)" required>
-        <input type="hidden" name="choice" value="1">
-        <button type="submit">Predict Price</button>
-    </form>
+    <div class="container">
+        <div class="logo">FinSight</div>
+        <div class="subtitle">Intelligent Stock Price Predictor</div>
 
-    <form id="llm-form" class="hidden" action="/predict" method="post">
-        <input type="hidden" name="choice" value="2">
-        <button type="submit">Find Bullish Stock & Predict</button>
-    </form>
-
-    {% if prediction_text %}
-    <div id="results">
-        <h2>Prediction Result</h2>
-        <p id="prediction">{{ prediction_text }}</p>
-        <canvas id="priceChart" width="400" height="200"></canvas>
-    </div>
-    {% endif %}
-
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <div class="loading-message" id="loadingMessage"></div>
-            <div class="loading-fact" id="loadingFact"></div>
-            <div class="creator-note">
-                Developed by Ankit Pimpalkar<br>
-                Bridging Finance & AI for Smarter Investment Decisions
+        <div class="banksight-premium">
+            <div class="banksight-header">
+                <div class="banksight-logo">
+                    <img src="{{ url_for('static', filename='banksight-icon.svg') }}" alt="BankSight" class="banksight-icon">
+                    <h2>BankSight</h2>
+                    <span class="premium-badge">MAPE 1.50-3.00%</span>
+                </div>
+                <div class="banksight-disclaimer">
+                    For Recruiters Only | Production Demo
+                </div>
+            </div>
+            <div class="banksight-content">
+                <div class="premium-description">
+                    <p>Advanced BankNifty Next-Day Prediction Model</p>
+                    <p class="premium-subtext">Industry-Grade Accuracy | Continuous Learning</p>
+                    <small>Select tomorrow's date to get the prediction</small>
+                </div>
+                <form id="banksight-form" class="premium-form">
+                    <input type="date" 
+                        id="prediction_date"
+                        name="prediction_date" 
+                        required
+                        min="{{ today_date }}"
+                        class="premium-input">
+                    <button type="submit" class="premium-button">
+                        Get BankNifty Prediction
+                    </button>
+                </form>
+                <div class="banksight-notice">
+                    Note: This is a production model running on Google Cloud. Limited API calls available.
+                </div>
             </div>
         </div>
+
+        <div class="options">
+            <div class="option" id="manual-option" onclick="selectOption('manual')">
+                <h2>Manual Prediction</h2>
+                <p>Enter a company name or stock ticker to predict its next day closing price.</p>
+            </div>
+            <div class="option" id="llm-option" onclick="selectOption('llm')">
+                <h2>LLM-Powered Prediction</h2>
+                <p>Let our AI choose the most promising bullish stock for you.</p>
+            </div>
+        </div>
+
+        <form id="manual-form" class="hidden" action="/predict" method="post">
+            <input type="text" name="ticker" placeholder="Enter Company Name or Ticker (e.g., Reliance, RELIANCE.NS)" required>
+            <input type="hidden" name="choice" value="1">
+            <button type="submit">Predict Price</button>
+        </form>
+
+        <form id="llm-form" class="hidden" action="/predict" method="post">
+            <input type="hidden" name="choice" value="2">
+            <button type="submit">Find Bullish Stock & Predict</button>
+        </form>
+
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-wrapper">
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-message" id="loadingMessage"></div>
+                    <div class="loading-fact" id="loadingFact"></div>
+                    <div class="loading-progress-container">
+                        <div class="loading-progress-bar" id="loadingProgressBar"></div>
+                    </div>
+                    <div class="creator-note">
+                        Developed by Ankit Pimpalkar<br>
+                        Bridging Finance & AI for Smarter Investment Decisions
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section">
+            {% if error %}
+                <div class="result-box error-box">
+                    <h3>Error</h3>
+                    <p>{{ error }}</p>
+                </div>
+            {% endif %}
+
+            {% if prediction %}
+                <div class="result-box prediction-box">
+                    <h3>Prediction{% if ticker %} for {{ ticker }}{% endif %}</h3>
+                    <p class="prediction-value">Next Day's Predicted Close Price: <span>₹{{ "%.2f"|format(prediction.predicted_close_price) }}</span></p>
+                    <p class="prediction-context">Based on data up to {{ today_date }}</p>
+                </div>
+            {% endif %}
+
+            {% if metrics %}
+                <div class="result-box metrics-box">
+                    <h3>Model Performance</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <h4>Model Accuracy</h4>
+                            <p>{{ "%.2f"|format(metrics.accuracy if metrics.accuracy else 0) }}%</p>
+                        </div>
+                        <div class="metric-item">
+                            <h4>Mean Absolute Error</h4>
+                            <p>₹{{ "%.2f"|format(metrics.mae if metrics.mae else 0) }}</p>
+                        </div>
+                        <div class="metric-item">
+                            <h4>Directional Accuracy</h4>
+                            <p>{{ "%.2f"|format(metrics.directional_accuracy if metrics.directional_accuracy else 0) }}%</p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if chart_prices and chart_dates %}
+        <div class="chart-container">
+            <canvas id="priceChart"></canvas>
+            <script>
+                const ctx = document.getElementById('priceChart').getContext('2d');
+                const chartDates = {{ chart_dates|tojson }};
+                const chartPrices = {{ chart_prices|tojson }};
+                const predictedPrice = {{ prediction.predicted_close_price|tojson if prediction else 'null' }};
+                
+                // Add the prediction to the chart
+                const labels = [...chartDates, 'Next Day (Predicted)'];
+                const prices = [...chartPrices, predictedPrice];
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Close Price',
+                            data: chartPrices,
+                            borderColor: '#1a73e8',
+                            backgroundColor: 'rgba(26, 115, 232, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Prediction',
+                            data: new Array(chartPrices.length).fill(null).concat(predictedPrice),
+                            borderColor: '#e84393',
+                            backgroundColor: '#e84393',
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                ticks: {
+                                    callback: function(value, index, values) {
+                                        return '₹' + value.toFixed(2);
+                                    },
+                                    maxRotation: 0,
+                                    font: {
+                                        size: function(context) {
+                                            return window.innerWidth < 600 ? 10 : 12;
+                                        }
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45,
+                                    font: {
+                                        size: function(context) {
+                                            return window.innerWidth < 600 ? 9 : 12;
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            },
+                            legend: {
+                                labels: {
+                                    font: {
+                                        size: function(context) {
+                                            return window.innerWidth < 600 ? 10 : 12;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            </script>
+        </div>
+        {% endif %}
+
+        {% if highlights %}
+        <div class="highlights-section">
+            <h2>Prediction Highlights</h2>
+            <p>A look at some of our past successful predictions.</p>
+            <div class="highlights-grid">
+                {% for item in highlights %}
+                <div class="highlight-item">
+                    <h4>{{ item['Ticker'] }} on {{ item['Date'] }}</h4>
+                    <p>Actual: <span>₹{{ "%.2f"|format(item['Actual']) }}</span></p>
+                    <p>Predicted: <span>₹{{ "%.2f"|format(item['Predicted']) }}</span></p>
+                    <p class="highlight-accuracy">Error: ₹{{ "%.2f"|format(item['Error']) }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 
-</div>
-
 <script>
+    let isBankSightLoading = false;
     function selectOption(option) {
         const manualOption = document.getElementById('manual-option');
         const llmOption = document.getElementById('llm-option');
@@ -275,135 +1083,270 @@
     // Default selection
     selectOption('manual');
 
-    {% if chart_data %}
-    const ctx = document.getElementById('priceChart').getContext('2d');
-    const chartData = {{ chart_data|tojson }};
-
-    const labels = chartData.dates;
-    const prices = chartData.prices;
-    
-    // Add the prediction to the chart
-    labels.push('Next Day (Predicted)');
-    prices.push(chartData.prediction);
-
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Close Price',
-                data: prices,
-                borderColor: '#1a73e8',
-                backgroundColor: 'rgba(26, 115, 232, 0.1)',
-                fill: true,
-                tension: 0.1
-            },
-            {
-                label: 'Prediction',
-                data: new Array(prices.length - 1).fill(null).concat(chartData.prediction),
-                borderColor: '#e84393',
-                backgroundColor: '#e84393',
-                pointRadius: 6,
-                pointHoverRadius: 8
-            }
-        ]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    ticks: {
-                        callback: function(value, index, values) {
-                            return '₹' + value.toFixed(2);
-                        }
-                    }
-                }
-            },
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
-                            }
-                            return label;
-                        }
-                    }
-                }
-            }
-        }
-    });
-    {% endif %}
+    // Chart initialization will happen from the templated chart code in the HTML section
 
     const loadingMessages = [
-        "Initializing LSTM deep learning model for accurate stock price prediction...",
-        "Collecting 3 years of historical data for comprehensive analysis...",
-        "Training neural networks on market patterns and trends...",
-        "Analyzing complex market dynamics using advanced AI algorithms...",
-        "Processing market sentiment and technical indicators...",
-        "Calibrating prediction models with historical volatility data...",
-        "Leveraging deep learning to identify market patterns..."
+        "Warming up cloud resources — this may take a moment due to Google Cloud Run's cold start. Thank you for your patience!",
+        "Fetching the latest stock data from Yahoo Finance — ensuring you get the most up-to-date predictions.",
+        "Building a custom deep learning model just for your selected stock — this flexibility lets you predict ANY stock available.",
+        "Training the neural network in real-time — this step takes a bit longer, but it means you aren't limited to a fixed list of stocks.",
+        "Analyzing years of historical data and technical indicators to provide a tailored prediction.",
+        "Optimizing model parameters for your chosen stock — accuracy matters, even if it takes a little longer.",
+        "Almost there! We're crunching numbers to deliver your personalized prediction."
     ];
 
     const loadingFacts = [
-        "Did you know? Our LSTM model processes over 750 trading days of data for each prediction!",
-        "FinSight combines financial expertise with AI technology.",
-        "LSTM networks are particularly good at learning long-term dependencies in financial data.",
-        "We use advanced deep learning to analyze complex market patterns.",
-        "Our model considers multiple technical indicators for accurate predictions.",
-        "Machine learning helps identify patterns that might be missed by traditional analysis.",
-        "FinSight: Where Financial Markets Meet Artificial Intelligence!"
+        "Because of budget-friendly deployment, our cloud server may take a few extra seconds to start — this helps keep the service accessible to everyone.",
+        "Each prediction is powered by a freshly trained model, so you can request any stock with available data — not just a pre-selected few.",
+        "We know training every time isn't the most scalable, but it demonstrates the power and flexibility of our approach.",
+        "For high-speed and scalable predictions, I've also built a companion project with pre-trained models for popular stocks and indexes.",
+        "You're seeing a live example of cloud deployment, dynamic model training, and robust data engineering — all built from scratch.",
+        "FinSight: Where Financial Markets Meet Artificial Intelligence!",
+        "Thank you for your patience — your experience helps us improve and innovate!"
     ];
 
     function showLoading() {
-        document.getElementById('loadingOverlay').style.display = 'flex';
-        rotateMessages();
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const progressBar = document.getElementById('loadingProgressBar');
+        const messageElement = document.getElementById('loadingMessage');
+        const factElement = document.getElementById('loadingFact');
+        
+        // Show overlay with fade-in effect
+        loadingOverlay.style.cssText = '';
+        loadingOverlay.style.opacity = '0';
+        loadingOverlay.style.display = 'flex';
+        void loadingOverlay.offsetWidth;
+        setTimeout(() => {
+            loadingOverlay.style.opacity = '1';
+        }, 10);
+
+        if (isBankSightLoading) {
+            // Only show creator note for BankSight
+            messageElement.style.display = 'none';
+            factElement.style.display = 'none';
+            progressBar.style.display = 'none';
+        } else {
+            // Show everything for FinSight
+            messageElement.style.display = '';
+            factElement.style.display = '';
+            progressBar.style.display = '';
+            startMessageRotation();
+            
+            // Animate progress bar for FinSight
+            progressBar.style.width = '0%';
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    const increment = Math.max(0.5, (95 - progress) / 20);
+                    progress += increment;
+                    progressBar.style.width = progress + '%';
+                }
+            }, 800);
+            window.progressInterval = progressInterval;
+        }
     }
 
     function hideLoading() {
-        document.getElementById('loadingOverlay').style.display = 'none';
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const progressBar = document.getElementById('loadingProgressBar');
+        isBankSightLoading = false;
+        // Complete the progress bar
+        progressBar.style.width = '100%';
+        
+        // Clear intervals
+        if (rotationInterval) clearInterval(rotationInterval);
+        if (window.progressInterval) clearInterval(window.progressInterval);
+        
+        // Fade out after a short delay to show completed progress
+        setTimeout(() => {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+                // Reset progress bar for next time
+                progressBar.style.width = '0%';
+            }, 400);
+        }, 600);
     }
 
     let messageIndex = 0;
     let factIndex = 0;
+    let rotationInterval = null;
 
-    function rotateMessages() {
+    function startMessageRotation() {
         const messageElement = document.getElementById('loadingMessage');
         const factElement = document.getElementById('loadingFact');
+        // Show first message immediately
+        messageElement.textContent = loadingMessages[messageIndex];
+        factElement.textContent = loadingFacts[factIndex];
         
-        setInterval(() => {
-            messageElement.textContent = loadingMessages[messageIndex];
-            factElement.textContent = loadingFacts[factIndex];
+        if (rotationInterval) clearInterval(rotationInterval);
+        
+        rotationInterval = setInterval(() => {
+            // Fade out
+            messageElement.classList.add('fade');
+            factElement.classList.add('fade');
             
-            messageIndex = (messageIndex + 1) % loadingMessages.length;
-            factIndex = (factIndex + 1) % loadingFacts.length;
-        }, 4000);
+            // Wait for fade out transition to complete
+            setTimeout(() => {
+                // Update content
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                factIndex = (factIndex + 1) % loadingFacts.length;
+                messageElement.textContent = loadingMessages[messageIndex];
+                factElement.textContent = loadingFacts[factIndex];
+                
+                // Fade in
+                messageElement.classList.remove('fade');
+                factElement.classList.remove('fade');
+            }, 800); // Match the CSS transition time
+        }, 12000); // Increased to 12 seconds for better readability
     }
 
-    // Modify the form submission to show loading
-    document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', () => {
-            showLoading();
+        // Modify the form submission to show loading
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', () => {
+                showLoading();
+            });
         });
+
+        // Example of using loading overlay
+        document.getElementById('manual-form').onsubmit = function() {
+            showLoading();
+        };
+
+        document.getElementById('llm-form').onsubmit = function() {
+            showLoading();
+        };
+
+        // Hide loading overlay when the prediction is displayed
+        {% if prediction_text %}
+        hideLoading();
+        {% endif %}
+
+    
+    // BankSight Premium Form Handler
+    document.getElementById('banksight-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const date = document.getElementById('prediction_date').value;
+        const form = this;
+        const submitButton = form.querySelector('button');
+        const originalButtonText = submitButton.textContent;
+        isBankSightLoading = true;
+        try {
+            // Validate date format
+            if (!date) {
+                alert('Please select a date');
+                return;
+            }
+
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.textContent = 'Processing...';
+            isBankSightLoading = true;
+            showLoading();
+
+            // Make API call
+            const response = await fetch('/external_predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ date: date })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to get prediction');
+            }
+
+            // Create or update results section
+            const resultsSection = document.querySelector('.results-section');
+            resultsSection.innerHTML = `
+                <div class="result-box prediction-box">
+                    <h3>BankSight Premium Prediction</h3>
+                    <p class="prediction-value">BankNifty Prediction for ${date}: 
+                        <span>₹${parseFloat(result.predicted_price).toLocaleString('en-IN', {
+                            maximumFractionDigits: 2,
+                            minimumFractionDigits: 2
+                        })}</span>
+                    </p>
+                    <p class="prediction-context">
+                        <small>Model Confidence: MAPE 1.50-3.00%</small><br>
+                        <small>Note: This is a demo prediction for recruitment purposes only.</small>
+                    </p>
+                </div>
+            `;
+
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        } catch (error) {
+            console.error('Prediction error:', error);
+            alert('Error getting prediction: ' + error.message);
+        } finally {
+            // Reset form state
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+            hideLoading();
+        }
     });
 
-    // Example of using loading overlay
-    document.getElementById('manual-form').onsubmit = function() {
-        showLoading('Analyzing data and predicting stock price. Please wait...', 'Did you know? Stock prices are influenced by various factors including market demand, investor sentiment, and economic indicators.');
-    };
+    // Enhanced BankSight date validation
+    document.getElementById('banksight-form').addEventListener('submit', function(e) {
+        const input = document.getElementById('prediction_date');
+        const selectedDate = new Date(input.value);
+        const now = new Date();
 
-    document.getElementById('llm-form').onsubmit = function() {
-        showLoading('Finding the most promising bullish stock and predicting its price. Please wait...', 'Fun Fact: The stock market has historically provided higher returns than other forms of investments over the long term.');
-    };
+        // Set hours to compare only date part
+        selectedDate.setHours(0,0,0,0);
+        now.setHours(0,0,0,0);
 
-    // Hide loading overlay when the prediction is displayed
-    {% if prediction_text %}
-    hideLoading();
-    {% endif %}
+        // Get today's market close time (3:30 pm)
+        const marketClose = new Date(now);
+        marketClose.setHours(15, 30, 0, 0);
+
+        // If selected date is in the future (beyond tomorrow)
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        tomorrow.setHours(0,0,0,0);
+
+        if (selectedDate > tomorrow) {
+            e.preventDefault();
+            alert('Only today, past dates, or tomorrow (after today\'s market close) predictions are accurate. to predict good results we need previous day data.');
+            return false;
+        }
+
+        // If selected date is tomorrow, check if current time is after market close
+        if (selectedDate.getTime() === tomorrow.getTime()) {
+            if (new Date() < marketClose) {
+                e.preventDefault();
+                alert('Tomorrow\'s prediction is only stable and accurate after today\'s market closes (3:30 pm).');
+                return false;
+            }
+        }
+
+    // If selected date is today or in the past, allow
+    // No further action needed
+    });
+
+    
+    // Disclaimer Modal Handler
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('disclaimerModal');
+        const acceptButton = document.getElementById('acceptDisclaimer');
+
+        // Always show the modal on page load
+        if (!sessionStorage.getItem('disclaimerAccepted')) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }
+        acceptButton.onclick = function() {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Re-enable scrolling
+            sessionStorage.setItem('disclaimerAccepted','true');
+        }
+    });
 </script>
 
 </body>

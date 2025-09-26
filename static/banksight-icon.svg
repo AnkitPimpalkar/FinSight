@@ -1,0 +1,62 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <defs>
+    <linearGradient id="buildingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd700;stop-opacity:0.2"/>
+      <stop offset="100%" style="stop-color:#b8860b;stop-opacity:0.3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Neoclassical Building Base -->
+  <path d="M10,80 L110,80 L110,110 L10,110 Z" 
+        fill="#1a1a1a" stroke="#ffd700" stroke-width="1"/>
+  
+  <!-- Columns -->
+  <rect x="20" y="40" width="10" height="40" fill="#2d2d2d" stroke="#ffd700" stroke-width="0.5"/>
+  <rect x="40" y="40" width="10" height="40" fill="#2d2d2d" stroke="#ffd700" stroke-width="0.5"/>
+  <rect x="70" y="40" width="10" height="40" fill="#2d2d2d" stroke="#ffd700" stroke-width="0.5"/>
+  <rect x="90" y="40" width="10" height="40" fill="#2d2d2d" stroke="#ffd700" stroke-width="0.5"/>
+
+  <!-- Triangular Pediment -->
+  <path d="M5,40 L60,10 L115,40 Z" 
+        fill="url(#buildingGradient)" 
+        stroke="#ffd700" 
+        stroke-width="1"/>
+
+  <!-- Bull Silhouette -->
+  <path d="M35,25 Q40,20 45,25 L50,20 L55,25 Q60,23 65,25 L45,35 Z" 
+        fill="#ffd700" 
+        stroke="#000" 
+        stroke-width="0.5">
+    <animate attributeName="transform" 
+             type="translate"
+             values="0,0; 2,-2; 0,0"
+             dur="3s"
+             repeatCount="indefinite"/>
+  </path>
+
+  <!-- Bear Silhouette -->
+  <path d="M75,25 Q70,20 65,25 L60,20 L55,25 Q50,23 45,25 L65,35 Z" 
+        fill="#b8860b" 
+        stroke="#000" 
+        stroke-width="0.5">
+    <animate attributeName="transform"
+             type="translate"
+             values="0,0; -2,-2; 0,0"
+             dur="3s"
+             repeatCount="indefinite"/>
+  </path>
+
+  <!-- Steps -->
+  <rect x="20" y="110" width="80" height="5" fill="#2d2d2d" stroke="#ffd700" stroke-width="0.5"/>
+  <rect x="30" y="105" width="60" height="5" fill="#2d2d2d" stroke="#ffd700" stroke-width="0.5"/>
+  <rect x="40" y="100" width="40" height="5" fill="#2d2d2d" stroke="#ffd700" stroke-width="0.5"/>
+
+  <!-- BankSight Text -->
+  <text x="60" y="95" 
+        text-anchor="middle" 
+        fill="#ffd700" 
+        font-family="Georgia, serif" 
+        font-size="12"
+        font-weight="bold">BANKSIGHT</text>
+</svg>
