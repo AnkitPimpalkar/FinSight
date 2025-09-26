@@ -17,7 +17,7 @@ setuptools.setup(
     version=__version__,
     author=AUTHOR_USER_NAME,
     author_email=AUTHOR_EMAIL,
-    description="A small python package for ml app",
+    description="A small python package for app",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url= "https://github.com/AnkitPimpalkar/FinSight",
