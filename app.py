@@ -21,7 +21,7 @@ GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 BANKSIGHT_API= os.getenv('BANKSIGHT_API')
 app = Flask(__name__)
 
-MAX_REQUESTS_PER_USER = 7   # total lifetime requests allowed per user
+MAX_REQUESTS_PER_USER = 30   # total lifetime requests allowed per user
 
 # Store usage count per user
 usage_log = defaultdict(int)
