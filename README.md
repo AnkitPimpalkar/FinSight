@@ -14,29 +14,6 @@ Interactive Visualization: Chart displays of historical prices and predictions
 BankSight Integration: Latest project- BankNifty prediction
 
 
-## Project Structure
-FinSight/
-│
-├── artifacts/            # Generated ML artifacts by pipeline stages
-├── config/               # Configuration files
-├── logs/                 # Application logs
-├── research/             # Jupyter notebooks for development
-├── src/finance_ml/       # Core ML code
-│   ├── components/       # ML pipeline components
-│   ├── config/           # Configuration management
-│   ├── constants/        # Project constants
-│   ├── entity/           # Data classes
-│   ├── pipeline/         # ML pipeline orchestration
-│   └── utils/            # Utility functions
-├── static/               # Static web assets
-├── templates/            # HTML templates
-├── tests/                # Unit tests
-├── app.py                # Flask web application
-├── main.py               # CLI entry point
-├── Dockerfile            # Container definition
-└── requirements.txt      # Project dependencies
-
-
 ## Technical Overview
 ML Pipeline
 The project implements a complete ML pipeline with the following stages:
