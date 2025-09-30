@@ -3,6 +3,7 @@ from phi.model.groq import Groq
 from phi.model.openai import OpenAIChat
 from phi.tools.yfinance import YFinanceTools
 from phi.tools.googlesearch import GoogleSearch
+from phi.tools.duckduckgo import DuckDuckGo
 import re
 import time
 import yfinance as yf
@@ -20,8 +21,8 @@ try:
     web_agent = Agent(
         name="WebAgent",
         role="Market research expert",
-        model=Groq(id="meta-llama/llama-4-scout-17b-16e-instruct"),
-        tools=[GoogleSearch()],
+        model=OpenAIChat(id="gpt-4o"),   #Groq(id="meta-llama/llama-4-scout-17b-16e-instruct"),
+        tools=[GoogleSearch(), DuckDuckGo()],
         instructions=[
             f"You are a web analyst. Search current news (as of {today}) to identify Indian stocks showing bullish trends today. Focus on companies with positive momentum, news, or sentiment. Return the NSE ticker (ending with .NS) of the most bullish stock you find, and mention it in your answer."
         ],

@@ -89,6 +89,9 @@ class ModelEvaluation:
         y_test_scaled = np.load(y_test_path)
         scaler = joblib.load(scaler_path)
 
+        # Set the MLflow experiment
+        mlflow.set_experiment("FinSight_Stock_Prediction")
+
         # Start MLflow run
         with mlflow.start_run():
             # Log model parameters from config if available
